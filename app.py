@@ -2,7 +2,10 @@ from flask import Flask, render_template, request
 import pandas as pd
 import requests
 import os
-import base64
+import pickle
+import numpy as np
+from markupsafe import Markup
+from utils.fertilizer import fertilizer_dict
 
 app = Flask(__name__)
 
@@ -23,6 +26,52 @@ def crop():
   return render_template("CropRecommendation.html")
 
 
+@app.route('/crop_prediction', methods=['POST'])
+def crop_prediction():
+  if request.method == 'POST':
+    labels = {
+      0: 'apple',
+      1: 'banana',
+      2: 'blackgram',
+      3: 'chickpea',
+      4: 'coconut',
+      5: 'coffee',
+      6: 'cotton',
+      7: 'grapes',
+      8: 'jute',
+      9: 'kidneybeans',
+      10: 'lentil',
+      11: 'maize',
+      12: 'mango',
+      13: 'mothbeans',
+      14: 'mungbean',
+      15: 'muskmelon',
+      16: 'orange',
+      17: 'papaya',
+      18: 'pigeonpeas',
+      19: 'pomegranate',
+      20: 'rice',
+      21: 'watermelon'
+    }
+
+    crop_recommendation_model = pickle.load(open('models/pipe.pkl', 'rb'))
+
+    N = int(request.form['nitrogen'])
+    P = int(request.form['phosphorous'])
+    K = int(request.form['potassium'])
+    ph = float(request.form['ph'])
+    rainfall = float(request.form['rainfall'])
+    temperature = float(request.form['temperature'])
+    humidity = float(request.form['humidity'])
+    data = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
+    my_prediction = crop_recommendation_model.predict(data)
+    final_prediction = my_prediction[0]
+    crop_name = labels[final_prediction]
+    return render_template('crop-result.html',
+                           prediction=crop_name,
+                           pred='img/crop/' + crop_name + '.jpg')
+
+
 @app.route("/FertilizerRecommendation")
 def fertilizer():
   return render_template("FertilizerRecommendation.html")
@@ -31,7 +80,7 @@ def fertilizer():
 @app.route("/PesticideRecommendation", methods=['GET', 'POST'])
 def pesticide():
   if request.method == 'POST':
-    file = request.files['image']  # fetch input
+    file = request.files['image']
     filename = file.filename
 
     file_path = os.path.join('static/user_uploaded', filename)
@@ -39,28 +88,15 @@ def pesticide():
 
     url = 'https://us-central1-crop-recommendation-cnn.cloudfunctions.net/predict'
 
-    payload = {'image': open(file_path, 'rb')}
+    payload = {'file': open(file_path, 'rb')}
 
     response = requests.post(url, files=payload)
+    pest_name = response.text.split(':')[1].strip().lower()
+    l = len(pest_name)
+    pest_name = pest_name[1:l - 2]
+    print(pest_name)
+    return render_template(f"{pest_name}.html", pred=pest_name)
 
-    # Check the response
-    print(response.status_code)
-    print(response.json())
-
-    # with open(file_path, 'rb') as file:
-    #   file_data = file.read()
-    # # print(file_data)
-    # encoded_image = base64.b64encode(file_data).decode('utf-8')
-    # payload = {
-    #   'image': encoded_image,
-    # }
-    # print(file_path)
-    # response = requests.post(url, json=payload)
-    # print(response.status_code)
-    # print(response.content)
-    # a = requests.post(url, data=image_data)
-    # print(a.content)
-    # return a.json()
   return render_template("PesticideRecommendation.html")
 
 
