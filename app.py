@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session
 import pandas as pd
 import requests
 import os
@@ -6,19 +6,66 @@ import pickle
 import numpy as np
 from markupsafe import Markup
 from utils.fertilizer import fertilizer_dict
+from sqlalchemy import create_engine, text
+from database import register_user, retrive_hashed_password
+from passlib.hash import pbkdf2_sha256
+
+# from flask_mysqldb import MySQL
+# import MySQLdb.cursors
+# import re
 
 app = Flask(__name__)
+current_user_email = ""
+
+# Register route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+  if request.method == 'POST':
+
+    username = request.form['username']
+    email = request.form['email']
+
+    password = request.form['password']
+    hashed_password = pbkdf2_sha256.hash(password)
+
+
+    register_user(username, email, hashed_password)
+
+    return redirect('/login')
+
+  return render_template('register.html')
+
+
+@app.route('/login', methods =['GET', 'POST'])
+def login():
+  if request.method=='POST':
+    email = request.form['email']
+    entered_password = request.form['password']
+    hashed_password = retrive_hashed_password(email)
+    if pbkdf2_sha256.verify(entered_password, hashed_password):
+      current_user_email = email
+      return redirect('index')
+    else:
+      wrong_credentials = True
+      return render_template('auth.html', res = wrong_credentials)
+  return render_template('auth.html')
+
+# @app.route('/logout')
+# def logout():
+#     session.pop('loggedin', None)
+#     session.pop('id', None)
+#     session.pop('username', None)
+#     return redirect(url_for('login'))
 
 
 @app.route('/')
+@app.route('/home')
+def home():
+  return render_template('unauth_index.html')
+  
 @app.route('/index')
 def hello():
   return render_template('index.html')
-
-
-@app.route("/login")
-def login():
-  return render_template('login.html')
 
 
 @app.route("/CropRecommendation")
