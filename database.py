@@ -22,7 +22,9 @@ def retrive_hashed_password(email):
 
   return res.all()[0][0]
 
-
+def store_feedback(email,feedback_given):
+  with engine.connect() as conn:
+    conn.execute(text("INSERT INTO accounts (email,feedback_given) VALUES ('{}','{}')".format(email,feedback_given)))
 
 # with engine.connect() as conn:
 #     conn.execute(text("DELETE FROM accounts"))
@@ -39,6 +41,8 @@ def retrive_hashed_password(email):
 # print(type(retrive_hashed_password('aryan@gmail.com')[0][0]))
 
 
+# with engine.connect() as conn:
+#     conn.execute(text("CREATE TABLE feedbacks (email VARCHAR(100) NOT NULL, feedback_given VARCHAR(1000))"))
 
 
 

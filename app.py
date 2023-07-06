@@ -7,15 +7,10 @@ import numpy as np
 from markupsafe import Markup
 from utils.fertilizer import fertilizer_dict
 from sqlalchemy import create_engine, text
-from database import register_user, retrive_hashed_password
+from database import register_user, retrive_hashed_password, store_feedback
 from passlib.hash import pbkdf2_sha256
 
-# from flask_mysqldb import MySQL
-# import MySQLdb.cursors
-# import re
-
 app = Flask(__name__)
-current_user_email = ""
 
 # Register route
 @app.route('/register', methods=['GET', 'POST'])
@@ -43,7 +38,7 @@ def login():
     entered_password = request.form['password']
     hashed_password = retrive_hashed_password(email)
     if pbkdf2_sha256.verify(entered_password, hashed_password):
-      current_user_email = email
+     
       return redirect('index')
     else:
       wrong_credentials = True
@@ -202,17 +197,7 @@ def fertilizer_recommend():
                            diff_k=abs_k)
 
 
-# @app.route("/predict", methods=['GET', 'POST'])
-# def predict():
-#   if request.method == 'POST':
 
-
-@app.route("/feedback", methods=['GET', 'POST'])
-def give_feedback():
-  if request.method == 'POST':
-    feed = request.form['given_feedback']
-    return feed
-  return render_template('feedback.html')
 
 
 if __name__ == '__main__':
